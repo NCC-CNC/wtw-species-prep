@@ -44,9 +44,9 @@ for layer in layers:
       for row in cursor:
           id, area = row[0], row[1]
           if id not in ha:
-              ha[id] = round(area / 10000, 4)
+              ha[id] = round(area / 10000) # round to 1ha
           else:
-              ha[id] += round(area / 10000, 4)
+              ha[id] += round(area / 10000) # round to 1ha
               
   # Join HA dictionary to polygon attribute table 
   arcpy.management.AddField(ncc,"Range_ha","DOUBLE")
