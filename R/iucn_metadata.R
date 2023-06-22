@@ -28,7 +28,7 @@ library(dplyr)
 library(purrr)
 library(readr)
 
-# Start timer (~40 mins)
+# Start timer (~ 1hr to run)
 start_time <- Sys.time()
 
 # Set output CSV folder
@@ -154,6 +154,12 @@ iucn_df <- iucn_df %>%
         )
       )
     )
+
+# Unlist
+iucn_df <- iucn_df %>%
+  mutate(IUCNID = unlist(IUCNID)) %>%
+  mutate(Common_Name = unlist(Common_Name)) %>%
+  mutate(Red_List = unlist(Red_List)) 
 
 # Write to .csv ----
 write_csv(iucn_df, file.path(OUTPUT, "IUCN_Metadata.csv"))
