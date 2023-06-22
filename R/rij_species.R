@@ -1,3 +1,22 @@
+#
+# Authors: Dan Wismer
+#
+# Date: June 22nd, 2023
+#
+# Description: Builds RIJ sparse matrix of 1km .tifs. This analysis uses parrellel
+#              processing. 
+#
+# Inputs:  1. Paths to 1km .tifs
+#          2. Output folder
+#          Optional:
+#          3. define "sources" variable
+#          4. number of cores
+#          5. chunk size (splitting rasters into equal size lists)
+#
+# Outputs: 1. sparse matrix saved as .RDS
+#
+#===============================================================================
+
 library(raster)
 library(prioritizr)
 library(foreach)
@@ -10,6 +29,13 @@ RIJ_OUTPUT <- "Data/Output/RIJ"
 # Species folder that has final .tiffs 
 ECCC_CH_PATH <- "Data/Output/ECCC_CH"
 ECCC_SAR_PATH <- "Data/Output/ECCC_SAR"
+IUCN_AMPH_PATH <- "C:/Data/NAT/SPECIES_1km/IUCN_AMPH"
+IUCN_BIRD_PATH <- "C:/Data/NAT/SPECIES_1km/IUCN_BIRD"
+IUCN_MAMM_PATH <- "C:/Data/NAT/SPECIES_1km/IUCN_MAMM"
+IUCN_REPT_PATH <- "C:/Data/NAT/SPECIES_1km/IUCN_REPT"
+NSC_END_PATH <- "C:/Data/NAT/SPECIES_1km/NSC_END"
+NSC_SAR_PATH <- "C:/Data/NAT/SPECIES_1km/NSC_SAR"
+NSC_SPP_PATH <- "C:/Data/NAT/SPECIES_1km/NSC_SPP"
 
 # Vector of sources to loop over
 sources <- c(ECCC_SAR_PATH) # <-- ADD/REMOVE AS NEEDED
