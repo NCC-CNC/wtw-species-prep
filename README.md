@@ -9,9 +9,9 @@ Python/arcpy and R scripts designed to prep species source data to the 1km grid 
 - Extracts parsed area that intersect with the 1km vector grid
 - Rasterizes the extractions by area (ha)
 <p align="center"> 
-   <img src="https://github.com/NCC-CNC/wtw-species-prep/blob/main/Doc/Imgs/00_parse_eccc.jpg" width="30%" height="30%">
-   <img src="https://github.com/NCC-CNC/wtw-species-prep/blob/main/Doc/Imgs/01_intersect_grid.jpg" width="30%" height="30%">
-   <img src="https://github.com/NCC-CNC/wtw-species-prep/blob/main/Doc/Imgs/02_rasterize.jpg" width="30%" height="30%">
+   <img src="https://github.com/NCC-CNC/wtw-species-prep/blob/main/Doc/Imgs/00_parse_eccc.jpg" width="33%" height="33%">
+   <img src="https://github.com/NCC-CNC/wtw-species-prep/blob/main/Doc/Imgs/01_intersect_grid.jpg" width="33%" height="33%">
+   <img src="https://github.com/NCC-CNC/wtw-species-prep/blob/main/Doc/Imgs/02_rasterize.jpg" width="33%" height="33%">
 </p> 
 
 - Generates the WTW include layer by intersecting CPCAD terrestrial biomes and NCC fee simple and conservation agreement properties with the 1km grid
