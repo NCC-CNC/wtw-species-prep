@@ -64,8 +64,8 @@ d = arcpy.management.Dissolve(m, "{}/CPCAD_NCC_DISSOLVE".format(fgdb))
 
 # A FASTER APPROACH TO SELECT BY LOCATION? (I tried this approach for fun)------
 # Add new burn field
-arcpy.management.AddField(d, "BURN", "SHORT")
-with arcpy.da.UpdateCursor(d, ["BURN"]) as cursor:
+arcpy.management.AddField(m, "BURN", "SHORT")
+with arcpy.da.UpdateCursor(m, ["BURN"]) as cursor:
     for row in cursor:
       row[0] = 1
       cursor.updateRow(row)
@@ -76,7 +76,7 @@ arcpy.AddMessage("... Rasterizing CPCAD+NCC: maximum combied area")
 arcpy.env.snapRaster = snap
 # Rasterize
 r = arcpy.conversion.PolygonToRaster(
-  in_features = d,
+  in_features = m,
   value_field = "BURN",
   out_rasterdataset = "memory/r1.tif",
   cell_assignment = "MAXIMUM_COMBINED_AREA",
