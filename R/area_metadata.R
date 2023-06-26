@@ -1,3 +1,18 @@
+#
+# Authors: Dan Wismer
+#
+# Date: June 26th, 2023
+#
+# Description: Builds species area metadata. This includes total range/habitat
+#              area and area of range/habitat that is currently protected.
+#
+# Inputs:  1. Species RIJ data
+#          2. Existing Conservation raster
+#
+# Outputs: 1. Metadata on each species layer (.xlsl)
+#
+#===============================================================================
+
 library(terra)
 library(prioritizr)
 library(tibble)

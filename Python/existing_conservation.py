@@ -108,7 +108,7 @@ parks_1km = arcpy.MinimumBoundingGeometry_management(
 )
 # ------------------------------------------------------------------------------
 
-# Intersection to create gridded includes
+# Intersection to create gridded includes: THIS TAKES A VERY LONG TIME ...
 arcpy.AddMessage("... Intersecting to grid")
 x_parks = arcpy.analysis.Intersect([d, parks_1km], "{}/CPCAD_NCC_INTERSECTION".format(fgdb))
  
