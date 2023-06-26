@@ -43,13 +43,21 @@ for layer in layers:
   if (km2 > 2000000):
     arcpy.AddMessage("... BIG RANGE! can not get proportion")
     arcpy.AddMessage("... Rasterizing using maximum combined area")
+    
+    ## new burn field, 100 ha
+    arcpy.management.AddField(layer,"BURN","SHORT")
+    with arcpy.da.UpdateCursor(layer, ["BURN"]) as cursor:
+        for row in cursor:
+          row[0] = 100
+          cursor.updateRow(row) 
+
     # Set environments
     arcpy.env.snapRaster = snap
     arcpy.env.extent = snap
     # Rasterize
     arcpy.conversion.PolygonToRaster(
       in_features = layer, 
-      value_field = "OBJECTID", 
+      value_field = "BURN", 
       out_rasterdataset = "{}/T_ECCC_{}.tif".format(os.path.dirname(fgdb), name),
       cell_assignment = "MAXIMUM_COMBINED_AREA",
       priority_field = "Range_ha",
@@ -60,7 +68,7 @@ for layer in layers:
   else:
   
     ## select by location
-    arcpy.AddMessage("... Select by location".format(km2))
+    arcpy.AddMessage("... Select by location")
     x = arcpy.management.SelectLayerByLocation(grid, "INTERSECT", layer)
     
     ## export
