@@ -38,7 +38,7 @@ NSC_SAR_PATH <- "C:/Data/NAT/SPECIES_1km/NSC_SAR"
 NSC_SPP_PATH <- "C:/Data/NAT/SPECIES_1km/NSC_SPP"
 
 # Vector of sources to loop over
-sources <- c(ECCC_SAR_PATH) # <-- ADD/REMOVE AS NEEDED
+sources <- c(ECCC_CH_PATH, ECCC_SAR_PATH) # <-- ADD/REMOVE AS NEEDED
 
 # Loop over data sources
 counter = 1
@@ -58,7 +58,7 @@ for (source in sources) {
   species <- list.files(source, pattern = ".tif$", full.names = TRUE)
   
   # Split list up into chunks ----
-  chunks <- 5 # <--- CHANGE THIS NEED BE
+  chunks <- 50 # <--- CHANGE THIS NEED BE
   species_split <- split(
     species, ceiling(seq_along(species) / (length(species) / chunks))
   )
