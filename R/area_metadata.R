@@ -47,11 +47,12 @@ species_tbl <- Matrix::rowSums(species_rij, na.rm = TRUE) %>%
   mutate(Source = "ECCC_CH", .before = File)
 
 ## write to excel
-write.xlsx(species_tbl, 
-           file = 'Data/Output/metadata/Species_Area.xlsx',
-           sheetName = 'ECCC_CH', 
-           row.names = FALSE, 
-           append = TRUE
+write.xlsx(
+  species_tbl, 
+  file = 'Data/Output/metadata/Species_Area.xlsx',
+  sheetName = 'ECCC_CH', 
+  row.names = FALSE, 
+  append = TRUE
 )
 
 # ECCC SAR ---------------------------------------------------------------------
@@ -73,7 +74,8 @@ species_tbl <- Matrix::rowSums(species_rij, na.rm = TRUE) %>%
   as.data.frame()
 
 ## write to excel
-write.xlsx(species_tbl, 
+write.xlsx(
+  species_tbl, 
   file = 'Data/Output/metadata/Species_Area.xlsx',
   sheetName = 'ECCC_SAR', 
   row.names = FALSE, 
