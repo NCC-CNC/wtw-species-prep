@@ -15,6 +15,7 @@
 # Outputs: 1. Vector 1km include layer
 #          2. Raster 1km include layer
 #
+# Estimated run time: 10-20 minutes
 #===============================================================================
 
 import arcpy
@@ -32,7 +33,7 @@ fgdb = arcpy.GetParameterAsText(4)
 # Get script path and set snap raster
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(script_dir)
-snap = "{}/Data/Input/NCC/Constant_1KM.tif".format(parent_dir)
+snap = "{}/Data/Input/NCC/Constant_1KM_IDX.tif".format(parent_dir)
 
 # Select and export filtered NCC layer
 arcpy.AddMessage("... Selecting fee simple + conservation agreements properties")
@@ -44,7 +45,7 @@ ncc = arcpy.conversion.ExportFeatures(x, "{}/NCC_FS_CA".format(fgdb))
 # Project CPCAD
 arcpy.AddMessage("... Projecting CPCAD to Canada_Albers_WGS_1984")
 crs = arcpy.Describe(ncc).spatialReference
-cpcad = arcpy.Project_management(cpcad, "{}/CPCAD".format(fgdb), crs)
+cpcad = arcpy.Project_management(cpcad, "{}/CPCAD_PRJ".format(fgdb), crs)
 
 # Create feature layer
 cpcad_lyr = arcpy.MakeFeatureLayer_management(cpcad, "cpcad_lyr")
@@ -54,13 +55,9 @@ where = "BIOME = 'T'"
 arcpy.AddMessage("... CPCAD, Select by attribute: {}".format(where))
 x = arcpy.management.SelectLayerByAttribute(cpcad_lyr, "NEW_SELECTION", where)
 
-# Merg
+# Merg (has overlap)
 arcpy.AddMessage("... Merging CPCAD and NCC")
-m = arcpy.management.Merge([x, ncc], "memory/merge")
-
-# Dissolve
-arcpy.AddMessage("... Dissolving CPCAD and NCC")
-d = arcpy.management.Dissolve(m, "{}/CPCAD_NCC_DISSOLVE".format(fgdb))
+m = arcpy.management.Merge([x, ncc], "memory/m")
 
 # A FASTER APPROACH TO SELECT BY LOCATION? (I tried this approach for fun)------
 # Add new burn field
@@ -85,37 +82,43 @@ r = arcpy.conversion.PolygonToRaster(
   build_rat = "DO_NOT_BUILD"
 )
 
+# Assign PUID to raster
+r_idx = Con(r, snap)
+r_idx.save("{}/r_idx.tif".format(os.path.dirname(fgdb)))
+
 # Raster to point
 arcpy.AddMessage("... Raster to point")
 p = arcpy.conversion.RasterToPoint (
-  in_raster = r,
-  out_point_features = "memory/point"
+  in_raster = r_idx,
+  out_point_features = "memory/p".format(fgdb)
 )
 
-# Add new PUID field
-arcpy.management.AddField(p,"PUID","LONG")
-
-# Buffer points by 5oom
+# Buffer points by 500m
 arcpy.AddMessage("... Buffer points by 500m")
 b = arcpy.analysis.Buffer(p, "memory/b", 500)
 
 # Create 1km grid from buffer points
-arcpy.AddMessage("... Buffer to 1km grid")
+arcpy.AddMessage("... Build 1km grid")
 parks_1km = arcpy.MinimumBoundingGeometry_management(
   in_features = b,
   out_feature_class = "{}/Existing_Conservation".format(fgdb),
   geometry_type = "ENVELOPE"
 )
+
 # ------------------------------------------------------------------------------
 
-# Intersection to create gridded includes: THIS TAKES A VERY LONG TIME ...
+# Intersection to create gridded includes
 arcpy.AddMessage("... Intersecting to grid")
-x_parks = arcpy.analysis.Intersect([d, parks_1km], "{}/CPCAD_NCC_INTERSECTION".format(fgdb))
+x_parks = arcpy.analysis.PairwiseIntersect([m, parks_1km], "memory/i")
+
+# Disolve by grid_code
+arcpy.AddMessage("... Dissolving by planning unit")
+x_parks_d = arcpy.analysis.PairwiseDissolve(x_parks, "memory/d", ["grid_code"])
  
 # Build dictionary: HA
 arcpy.AddMessage("... Building Range_ha field")
 ha = {}
-with arcpy.da.SearchCursor(x_parks, ["PUID", "SHAPE@AREA"]) as cursor:
+with arcpy.da.SearchCursor(x_parks_d, ["grid_code", "SHAPE@AREA"]) as cursor:
     for row in cursor:
         id, area = row[0], row[1]
         if id not in ha:
@@ -125,7 +128,7 @@ with arcpy.da.SearchCursor(x_parks, ["PUID", "SHAPE@AREA"]) as cursor:
             
 # Join HA dictionary to gridded includes attribute table 
 arcpy.management.AddField(parks_1km,"Range_ha","DOUBLE")
-with arcpy.da.UpdateCursor(parks_1km, ["PUID", "Range_ha"]) as cursor:
+with arcpy.da.UpdateCursor(parks_1km, ["grid_code", "Range_ha"]) as cursor:
     for row in cursor:
         id = row[0]
         if id in ha:
