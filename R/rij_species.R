@@ -15,9 +15,10 @@
 #
 # Outputs: 1. sparse matrix saved as .RDS
 #
+# Estimated run times: ECCC_CH: ~4 mins
 #===============================================================================
 
-library(raster)
+library(terra)
 library(prioritizr)
 library(foreach)
 library(parallel)
@@ -38,7 +39,7 @@ NSC_SAR_PATH <- "C:/Data/NAT/SPECIES_1km/NSC_SAR"
 NSC_SPP_PATH <- "C:/Data/NAT/SPECIES_1km/NSC_SPP"
 
 # Vector of sources to loop over
-sources <- c(ECCC_CH_PATH, ECCC_SAR_PATH) # <-- ADD/REMOVE AS NEEDED
+sources <- c(ECCC_CH_PATH) # <-- ADD/REMOVE AS NEEDED
 
 # Loop over data sources
 counter = 1
@@ -50,7 +51,9 @@ for (source in sources) {
   print(paste0("Processing ", counter, " of ", len, ": ", name))
   
   # Set up clusters
-  n_cores = detectCores() - 2
+  n_cores = detectCores() - 10 # had to reduce cores because I was running out of memory
+                               # did something change with prioritizr::rij_matrix? ...
+                               # I use to be able to run this with all cores ...
   cl <- makeCluster(n_cores)
   registerDoParallel(cl)    
   
