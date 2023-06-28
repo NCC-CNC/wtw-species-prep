@@ -32,19 +32,25 @@ for layer in layers:
   ## select vector cells > 
   lyr = arcpy.MakeFeatureLayer_management(layer, "lyr")
   where = "Range_ha > 0"
-  x = arcpy.management.SelectLayerByAttribute(lyr, "NEW_SELECTION", where)  
+  x = arcpy.management.SelectLayerByAttribute(lyr, "NEW_SELECTION", where) 
+  ## get record count
+  record_count = arcpy.management.GetCount(x)[0]
   
-  ## polygon to raster
-  arcpy.AddMessage("Rasterizing: {} ({}/{})".format(name, counter, len(layers)))
-  arcpy.conversion.PolygonToRaster(
-    in_features = x, 
-    value_field = "Range_ha", 
-    out_rasterdataset = "{}/T_ECCC_{}.tif".format(folder, name),
-    cell_assignment = "CELL_CENTER",
-    priority_field = "Range_ha",
-    cellsize = 1000,
-    build_rat = "DO_NOT_BUILD"
-  )
+  ## polygon to raster if there are records selected
+  if int(record_count) > 0:
+    arcpy.AddMessage("Rasterizing: {} ({}/{})".format(name, counter, len(layers)))
+    arcpy.conversion.PolygonToRaster(
+      in_features = x, 
+      value_field = "Range_ha", 
+      out_rasterdataset = "{}/T_ECCC_{}.tif".format(folder, name),
+      cell_assignment = "CELL_CENTER",
+      priority_field = "Range_ha",
+      cellsize = 1000,
+      build_rat = "DO_NOT_BUILD"
+    )
+  else:
+    # This will happen becuase of rounding. Ex species: CH_END_COSEWIC_1007
+    arcpy.AddMessage("!!! LESS THEN 1HA, SKIPPING: {}".format(name))
   
   ## advance counter
   counter += 1
