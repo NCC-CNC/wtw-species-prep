@@ -18,11 +18,17 @@ import arcpy
 # Get user input
 grid = arcpy.GetParameterAsText(0)
 layers = arcpy.GetParameterAsText(1).split(";")
-folder = arcpy.GetParameterAsText(2)
+fgdb = arcpy.GetParameterAsText(2)
+folder = arcpy.GetParameterAsText(3)
 
 # Set environments
 arcpy.env.snapRaster = grid
 arcpy.env.extent = grid
+
+# List layers if fgdb is provided
+if fgdb:
+  arcpy.env.workspace = fgdb
+  layers = arcpy.ListFeatureClasses(wild_card = "*COSEWIC*")
 
 counter = 1
 for layer in layers:
@@ -50,7 +56,16 @@ for layer in layers:
     )
   else:
     # This will happen becuase of rounding. Ex species: CH_END_COSEWIC_1007
-    arcpy.AddMessage("!!! LESS THEN 1HA, SKIPPING: {}".format(name))
-  
+    arcpy.AddMessage("!!! LESS THEN 0.5 HA, ROUNDING TO 1 HA: {}".format(name))
+    arcpy.conversion.PolygonToRaster(
+      in_features = layer, 
+      value_field = "OBJECTID", 
+      out_rasterdataset = "{}/T_ECCC_{}.tif".format(folder, name),
+      cell_assignment = "CELL_CENTER",
+      priority_field = "NONE",
+      cellsize = 1000,
+      build_rat = "DO_NOT_BUILD"
+    )    
+    
   ## advance counter
   counter += 1
