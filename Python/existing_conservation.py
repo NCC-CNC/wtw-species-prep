@@ -84,7 +84,6 @@ r = arcpy.conversion.PolygonToRaster(
 
 # Assign PUID to raster
 r_idx = Con(r, snap)
-r_idx.save("{}/r_idx.tif".format(os.path.dirname(fgdb)))
 
 # Raster to point
 arcpy.AddMessage("... Raster to point")
