@@ -167,6 +167,7 @@ x = arcpy.management.SelectLayerByAttribute(parks_1km_lyr , "NEW_SELECTION", whe
 
 # Rasterize includes as a continuous output
 arcpy.AddMessage("... Raterizing existing conservation")
+arcpy.env.extent = snap # set extent
 arcpy.conversion.PolygonToRaster(
   in_features = x, 
   value_field = "Range_ha", 
