@@ -58,8 +58,21 @@ sources <- c(
   "NSC_SPP" = NSC_SPP_PATH
 )
 
-# Loop over data sources
-sources <- sources[1:1] # <--- SUBSET NEED BE TO NOT ITERATE OVER ALL SOURCES
+# RIJ function (needed in foreach %dopar%) ----
+batch_rij <- function(PU, tiff_lst, name) {
+  ## read-in species
+  species_stack <- terra::rast(tiff_lst)
+  ## define NA pixel
+  if (name %in% c("ECCC_CH", "ECCC_SAR")) {
+    terra::NAflag(species_stack) <- 128
+  }
+  ## build RIJ matrix
+  rij <- prioritizr::rij_matrix(rast(PU), species_stack, memory = FALSE)
+  return(rij)
+}
+
+# Loop over data sources ----
+sources <- sources[2:2] # <--- SUBSET NEED BE TO NOT ITERATE OVER ALL SOURCES
 for (i in seq_along(sources)) {
   start_time <- Sys.time()
   
@@ -67,7 +80,7 @@ for (i in seq_along(sources)) {
   print(paste0("Processing ", i, " of ", length(sources), ": ", name))
   
   # Set up clusters
-  n_cores = detectCores() - 10 # <-- CHANGE NUMBER OF CORES NEED BE
+  n_cores = detectCores() - 8 # <-- CHANGE NUMBER OF CORES NEED BE
   cl <- makeCluster(n_cores)
   registerDoParallel(cl)    
   
@@ -88,20 +101,11 @@ for (i in seq_along(sources)) {
     .multicombine = TRUE,
     .inorder = TRUE) %dopar% {
       
-      ## read-in species
-      species_stack <- terra::rast(species_split[[j]])
-      
-      ## define NA pixel... 
-      ## had to do this because the arcpy PolygonToRaster sets NoData to -128 
-      if (name %in% c("ECCC_CH", "ECCC_SAR")) {
-        terra::NAflag(species_stack) <- 128
-      }
-
-      ## build RIJ matrix
-      rij <- prioritizr::rij_matrix(rast(PU), species_stack)
-      return(rij)
+      ## build species RIJ 
+      species_rij <- batch_rij(PU, species_split[[j]], name)
+    
     }
-  
+    
   # Stop cluster
   stopCluster(cl)
   
