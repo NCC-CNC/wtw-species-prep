@@ -1,7 +1,7 @@
 #
-# Authors: Dan Wismer
+# Authors: Dan Wismer & Marc Edwards
 #
-# Date: June 22nd, 2023
+# Date: July 5th, 2023
 #
 # Description: Builds RIJ sparse matrix of 1km .tifs. This analysis uses parrellel
 #              processing. 
@@ -15,7 +15,8 @@
 #
 # Outputs: 1. sparse matrix saved as .RDS
 #
-# Estimated run times: ECCC_CH: ~4 mins
+# Estimated run times: ECCC_CH: ~3 mins
+#                      ECC_SAR: ~4 mins
 #===============================================================================
 
 library(terra)
@@ -31,7 +32,7 @@ RIJ_OUTPUT <- "Data/Output/RIJ"
 # NCC planning unit raster grid 
 PU <- rast("Data/Input/NCC/NCC_1KM_PU.tif")
 # https://github.com/rspatial/terra/issues/166 
-PU <- wrap(PU) # <- needed for parallel
+PU <- wrap(PU) # <--- needed for parallel
 
 # Species folder that has final .tiffs 
 ECCC_CH_PATH <- "Data/Output/ECCC_CH"
@@ -44,45 +45,51 @@ NSC_END_PATH <- "C:/Data/NAT/SPECIES_1km/NSC_END"
 NSC_SAR_PATH <- "C:/Data/NAT/SPECIES_1km/NSC_SAR"
 NSC_SPP_PATH <- "C:/Data/NAT/SPECIES_1km/NSC_SPP"
 
-# Vector of sources to loop over
-sources <- c(ECCC_CH_PATH) # <-- ADD/REMOVE AS NEEDED
+# Named vector of sources to loop over
+sources <- c(
+  "ECCC_CH" = ECCC_CH_PATH, 
+  "ECCC_SAR" = ECCC_SAR_PATH,
+  "IUCN_AMPH" = IUCN_AMPH_PATH,
+  "IUCN_BIRD" = IUCN_BIRD_PATH,
+  "IUCN_MAMM" = IUCN_MAMM_PATH,
+  "IUCN_REPT" = IUCN_REPT_PATH,
+  "NSC_END" = NSC_END_PATH,
+  "NSC_SAR" = NSC_SAR_PATH,
+  "NSC_SPP" = NSC_SPP_PATH
+)
 
 # Loop over data sources
-counter = 1
-len = length(sources)
-for (source in sources) {
-  
+sources <- sources[1:1] # <--- SUBSET NEED BE TO NOT ITERATE OVER ALL SOURCES
+for (i in seq_along(sources)) {
   start_time <- Sys.time()
-  name <- strsplit(source, "/")[[1]][3] # ECC_SAR, ECCC_CH, etc.
-  print(paste0("Processing ", counter, " of ", len, ": ", name))
+  
+  name <- names(sources[i])
+  print(paste0("Processing ", i, " of ", length(sources), ": ", name))
   
   # Set up clusters
-  n_cores = detectCores() - 10 # had to reduce cores because I was running out of memory
-                               # did something change with prioritizr::rij_matrix? ...
-                               # I use to be able to run this with all cores ...
+  n_cores = detectCores() - 10 # <-- CHANGE NUMBER OF CORES NEED BE
   cl <- makeCluster(n_cores)
   registerDoParallel(cl)    
   
   # Get list of tiffs 
-  species <- list.files(source, pattern = ".tif$", full.names = TRUE)
+  species <- list.files(sources[i], pattern = ".tif$", full.names = TRUE)
   
   # Split list up into chunks ----
-  chunks <- 50 # <--- CHANGE THIS NEED BE
+  chunks <- 50 # <--- CHANGE NUMBER OF "CHUNKS" NEED BE
   species_split <- split(
     species, ceiling(seq_along(species) / (length(species) / chunks))
   )
   
   # Build rij matrix in parallel ----
   species_rij <- foreach(
-    i = seq_along(species_split), 
+    j = seq_along(species_split), 
     .packages = c("terra", "prioritizr"), 
     .combine = "rbind",
     .multicombine = TRUE,
-    .inorder = TRUE,
-    .verbose = TRUE) %dopar% {
+    .inorder = TRUE) %dopar% {
       
       ## read-in species
-      species_stack <- terra::rast(species_split[[i]])
+      species_stack <- terra::rast(species_split[[j]])
       
       ## define NA pixel... 
       ## had to do this because the arcpy PolygonToRaster sets NoData to -128 
@@ -101,9 +108,6 @@ for (source in sources) {
   # Save rij to disk
   print("... Saving as .rds")
   saveRDS(species_rij, file.path(RIJ_OUTPUT, paste0("RIJ_", name, ".rds")), compress = TRUE)
-  
-  ## advance counter
-  counter <-  counter + 1
   
   ## clear RAM
   # rm(species)
