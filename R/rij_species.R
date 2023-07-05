@@ -23,9 +23,15 @@ library(prioritizr)
 library(foreach)
 library(parallel)
 library(doParallel)
+library(Matrix)
 
 # RIJ output folder
 RIJ_OUTPUT <- "Data/Output/RIJ"
+
+# NCC planning unit raster grid 
+PU <- rast("Data/Input/NCC/NCC_1KM_PU.tif")
+# https://github.com/rspatial/terra/issues/166 
+PU <- wrap(PU) # <- needed for parallel
 
 # Species folder that has final .tiffs 
 ECCC_CH_PATH <- "Data/Output/ECCC_CH"
@@ -70,10 +76,10 @@ for (source in sources) {
   species_rij <- foreach(
     i = seq_along(species_split), 
     .packages = c("terra", "prioritizr"), 
-    .combine = "rbind") %dopar% {
-      
-      # planning unit raster grid 
-      ncc_1km <- rast("Data/Input/NCC/Constant_1KM.tif")
+    .combine = "rbind",
+    .multicombine = TRUE,
+    .inorder = TRUE,
+    .verbose = TRUE) %dopar% {
       
       ## read-in species
       species_stack <- terra::rast(species_split[[i]])
@@ -85,7 +91,7 @@ for (source in sources) {
       }
 
       ## build RIJ matrix
-      rij <- prioritizr::rij_matrix(ncc_1km, species_stack)
+      rij <- prioritizr::rij_matrix(rast(PU), species_stack)
       return(rij)
     }
   
@@ -100,10 +106,10 @@ for (source in sources) {
   counter <-  counter + 1
   
   ## clear RAM
-  rm(species)
-  rm(species_rij)
-  gc()
-  
+  # rm(species)
+  # rm(species_rij)
+  # gc()
+  # 
   ## end timer
   end_time <- Sys.time()
   print(end_time - start_time)
