@@ -16,7 +16,7 @@
 # Outputs: 1. sparse matrix saved as .RDS
 #
 # Estimated run times: ECCC_CH: ~3 mins
-#                      ECC_SAR: ~4 mins
+#                      ECC_SAR: ~6 mins
 #===============================================================================
 
 library(terra)
@@ -72,7 +72,7 @@ batch_rij <- function(PU, tiff_lst, name) {
 }
 
 # Loop over data sources ----
-sources <- sources[2:2] # <--- SUBSET NEED BE TO NOT ITERATE OVER ALL SOURCES
+sources <- sources[1:2] # <--- SUBSET NEED BE TO NOT ITERATE OVER ALL SOURCES
 for (i in seq_along(sources)) {
   start_time <- Sys.time()
   
@@ -114,10 +114,10 @@ for (i in seq_along(sources)) {
   saveRDS(species_rij, file.path(RIJ_OUTPUT, paste0("RIJ_", name, ".rds")), compress = TRUE)
   
   ## clear RAM
-  # rm(species)
-  # rm(species_rij)
-  # gc()
-  # 
+  rm(species)
+  rm(species_rij)
+  gc()
+
   ## end timer
   end_time <- Sys.time()
   print(end_time - start_time)
