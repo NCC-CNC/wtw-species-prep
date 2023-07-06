@@ -15,8 +15,16 @@
 #
 # Outputs: 1. sparse matrix saved as .RDS
 #
-# Estimated run times: ECCC_CH: ~3 mins
-#                      ECC_SAR: ~6 mins
+# RUN RECORDER:   
+##  ECCC_CH: ~3 mins, 261 species, 6 cores, 50 chunks, last run: July 6th, 2023 
+##  ECCC_SAR: ~6 mins, 475 species, 6 cores, 50 chunks, last run: July 6th, 2023 
+##  IUCN_AMPH: ~2 mins, 6 cores, 50 chunks
+##  IUCN_BIRD: ~14 mins, 6 cores, 50 chunks
+##  IUCN_MAMM: ~3 mins, 6 cores, 50 chunks
+##  IUCN_REPT: ~1 mins, 6 cores, 50 chunks
+##  NSC_END: ~3 mins, 6 cores, 50 chunks
+##  NSC_SAR: ~5 mins, 6 cores, 50 chunks
+##  NSC_SPP: NOT COMPLETTING!!! last run: July 6th, 2023
 #===============================================================================
 
 library(terra)
@@ -80,12 +88,13 @@ for (i in seq_along(sources)) {
   print(paste0("Processing ", i, " of ", length(sources), ": ", name))
   
   # Set up clusters
-  n_cores = detectCores() - 8 # <-- CHANGE NUMBER OF CORES NEED BE
+  n_cores = detectCores() - 10 # <-- CHANGE NUMBER OF CORES NEED BE
   cl <- makeCluster(n_cores)
   registerDoParallel(cl)    
   
   # Get list of tiffs 
   species <- list.files(sources[i], pattern = ".tif$", full.names = TRUE)
+  print(paste0("... number of species: ", length(species)))
   
   # Split list up into chunks ----
   chunks <- 50 # <--- CHANGE NUMBER OF "CHUNKS" NEED BE
