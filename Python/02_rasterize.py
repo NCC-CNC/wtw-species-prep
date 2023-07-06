@@ -48,7 +48,7 @@ for layer in layers:
     arcpy.conversion.PolygonToRaster(
       in_features = x, 
       value_field = "Range_ha", 
-      out_rasterdataset = "{}/T_ECCC_{}.tif".format(folder, name),
+      out_rasterdataset = "{}/T_NAT_ECCC_{}.tif".format(folder, name),
       cell_assignment = "CELL_CENTER",
       priority_field = "Range_ha",
       cellsize = 1000,
@@ -60,7 +60,7 @@ for layer in layers:
     arcpy.conversion.PolygonToRaster(
       in_features = layer, 
       value_field = "OBJECTID", 
-      out_rasterdataset = "{}/T_ECCC_{}.tif".format(folder, name),
+      out_rasterdataset = "{}/T_NAT_ECCC_{}.tif".format(folder, name),
       cell_assignment = "CELL_CENTER",
       priority_field = "NONE",
       cellsize = 1000,
