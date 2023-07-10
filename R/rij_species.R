@@ -76,11 +76,13 @@ batch_rij <- function(PU, tiff_lst, name) {
   }
   ## build RIJ matrix
   rij <- prioritizr::rij_matrix(rast(PU), species_stack, memory = FALSE)
+  rm(species_stack)
+  rm(PU)
   return(rij)
 }
 
 # Loop over data sources ----
-sources <- sources[1:2] # <--- SUBSET NEED BE TO NOT ITERATE OVER ALL SOURCES
+sources <- sources[9:9] # <--- SUBSET NEED BE TO NOT ITERATE OVER ALL SOURCES
 for (i in seq_along(sources)) {
   start_time <- Sys.time()
   
@@ -101,6 +103,8 @@ for (i in seq_along(sources)) {
   species_split <- split(
     species, ceiling(seq_along(species) / (length(species) / chunks))
   )
+  
+  print(paste0("... number of tifs in each chunk: ~", length(species_split[[1]])))
   
   # Build rij matrix in parallel ----
   species_rij <- foreach(
