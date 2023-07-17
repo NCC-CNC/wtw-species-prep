@@ -82,11 +82,17 @@ arcpy.AddMessage("Projecting: ECCC to Canada_Albers_WGS_1984")
 p = arcpy.Project_management(eccc, "{}/{}_PRJ".format(fgdb, source), crs)
 
 # Dissolve
-arcpy.AddMessage("Dissolving: ECCC by {}".format(cosewic_field))
+
+if source == "ECCC_CH":
+ dissolve_field = [cosewic_field]
+else:
+ dissolve_field = [cosewic_field, sara_field, sci_field, com_field]
+
+arcpy.AddMessage("Dissolving: ECCC by {}".format(dissolve_field ))
 eccc_dis = arcpy.analysis.PairwiseDissolve(
   in_features = p, 
   out_feature_class = "{}/{}_PROTECTED".format(fgdb, source), 
-  dissolve_field = [cosewic_field, sara_field, sci_field, com_field]
+  dissolve_field = dissolve_field
 )
 
 # Delete projection feature
