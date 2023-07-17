@@ -1,17 +1,16 @@
 #
 # Authors: Dan Wismer
 #
-# Date: June 19th, 2023
+# Date: July 17th, 2023
 #
-# Description: Parses ECCC Critical Habitat / Species at Risk Range Map layers
-#              by COSEWIC ID. 
+# Description: Extracts protected area to each species 
 #
-# Inputs:  1. Source ECCC layer
-#          2. field names
-#          3. output projection
-#          4. output FDGB
+# Inputs:  1. ECCC source (range maps or ciritcal habitat)
+#          2. CPCAD
+#          3. NCC Achievments
 #
-# Outputs: 1. a feature class for each unique COSEWIC ID. ex. CH_END_COSEWIC_2
+#
+# Outputs: 1. ECCC with populated RANGE_HA and PROTECTION_HA fields
 #
 #===============================================================================
 
