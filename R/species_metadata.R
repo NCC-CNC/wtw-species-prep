@@ -24,11 +24,15 @@ library(readxl)
 library(readr)
 library(purrr)
 library(stringr)
+library(sf)
 source("R/fct_sci_to_common.R")
 
 # Read-in NCC planning unts and existing conservation
 ncc_1km <- rast("Data/Input/NCC/NCC_1KM_PU.tif")
-protected <- rast("Data/Output/Conserved/Existing_Conservation.tif")
+protected <- rast("Data/Output/Conserved/Existing_Conservation_ha.tif") 
+terra::NAflag(protected) <- 128 # set NA pixel
+protected <- protected  / 100 # convert to km2
+
 
 # Read-in look up tables ----
 ECCC_CH_LU <- read_excel("Data/Output/metadata/ECCC_CH_Metadata.xlsx")
@@ -44,123 +48,79 @@ rownames(protected_rij) <- c("Protected")
 
 # ECCC CH ----------------------------------------------------------------------
 
-## read-in prepped RIJ
-species_rij <- readRDS("Data/Output/RIJ/RIJ_ECCC_CH.rds")
-## intersect species with protected areas
-proteced_species <- rbind(species_rij, protected_rij) 
-proteced_X_species <- proteced_species [, proteced_species ["Protected",] > 0]
-proteced_X_species_tbl <- Matrix::rowSums(proteced_X_species, na.rm = TRUE) %>%
-  as_tibble(rownames = "File") %>%
-  rename(Protected_Ha = value)
-
-## build data frame
-species_tbl <- Matrix::rowSums(species_rij, na.rm = TRUE) %>%
-  as_tibble(rownames = "File") %>%
-  rename(Total_Ha = value) %>%
-  left_join(proteced_X_species_tbl) %>%
-  mutate(File = paste0(File, ".tif")) %>%
-  mutate(Source = "ECCC_CH", .before = File) %>%
-  mutate(Pct_Protected = round(((Protected_Ha / Total_Ha) * 100), 2)) %>%
-  as.data.frame()
-
-## add scientific name, common name, threat and theme
-species_tbl <- species_tbl %>%
-  mutate(
-    Sci_Name = imap(
-      File, ~ (ch_cosewicid_to_name(
-        LUT = ECCC_CH_LU,
-        cosewicid = tail(unlist(strsplit(strsplit(.x, ".tif")[[1]][1], "_")), 1),
-        name_type = "sci")
-      )), .after = File) %>%
-  mutate(
-    Common_Name = imap(
-      File, ~ (ch_cosewicid_to_name(
-        LUT = ECCC_CH_LU,
-        cosewicid = tail(unlist(strsplit(strsplit(.x, ".tif")[[1]][1], "_")), 1),
-        name_type = "common")
-      )), .after = Sci_Name) %>%
-  mutate(
-    Threat =  imap(
-      File, ~ (unlist(strsplit(strsplit(.x, ".tif")[[1]][1], "_"))[5])),
-    .after = Common_Name
-  ) %>%
-  mutate(
-    Theme = case_when(
-      Threat == "END" ~ "Endangered Species (ECCC Critical Habitat)",
-      Threat == "EXT" ~ "Extirpated Species (ECCC Critical Habitat)",
-      Threat == "THR" ~ "Threatened Species (ECCC Critical Habitat)",
-    ), .after = File
+## read-in prepped feature class
+species <- read_sf("Data/Output/Conserved/Conserved.gdb", "ECCC_CH_PROTECTED") %>% 
+  st_drop_geometry() %>%
+  mutate(Source = "ECCC_CH") %>%
+  mutate(SARA_Status = imap(
+      COSEWIC_ID, ~ (filter(ECCC_CH_LU, COSEWIC_ID == .x)$SARA_Status[1]))
+  ) %>%  
+  mutate(Threat = case_when(
+    SARA_Status == 1 ~ "EXT",
+    SARA_Status == 2 ~ "END",
+    SARA_Status == 3 ~ "THR",
+  )) %>%
+  mutate(Theme = case_when(
+      Threat == "END" ~ "Critical Habitat: Endangered Species (ECCC)",
+      Threat == "EXT" ~ "Critical Habitat: Extirpated Species (ECCC)",
+      Threat == "THR" ~ "Critical Habitat: Threatened Species (ECCC)",
+  )) %>%  
+  mutate(File = paste0("T_NAT_ECCC_CH_", Threat, "_COSEWIC_", COSEWIC_ID, ".tif")) %>%
+  mutate(Sci_Name = imap(
+    COSEWIC_ID, ~ (filter(ECCC_CH_LU, COSEWIC_ID == .x)$SciName[1]))
+  ) %>%  
+  mutate(Common_Name = imap(
+    COSEWIC_ID, ~ (filter(ECCC_CH_LU, COSEWIC_ID == .x)$CommName_E[1]))
+  ) %>%  
+  mutate(Total_Km2 = RANGE_HA / 100) %>%
+  mutate(Protected_Km2 = PROTECTION_HA / 100) %>%
+  mutate(Pct_Protected = round(((Protected_Km2 / Total_Km2) * 100), 2)) %>%
+  select(c("Source", "File", "COSEWIC_ID", "Theme", "Sci_Name", "Common_Name", "Threat", "Total_Km2", "Protected_Km2", "Pct_Protected")) %>%
+  as.data.frame() %>%
+  write.xlsx(
+    file = 'Data/Output/metadata/WTW_NAT_SPECIES_METADATA.xlsx',
+    sheetName = 'ECCC_CH', 
+    row.names = FALSE,
+    append = TRUE
   )
   
-## write to excel
-write.xlsx(
-  species_tbl, 
-  file = 'Data/Output/metadata/WTW_NAT_SPECIES_METADATA.xlsx',
-  sheetName = 'ECCC_CH', 
-  row.names = FALSE
-)
-
 # ECCC SAR ---------------------------------------------------------------------
 
-## read-in prepped RIJ
-species_rij <- readRDS("Data/Output/RIJ/RIJ_ECCC_SAR.rds")
-## intersect species with protected areas
-proteced_species <- rbind(species_rij, protected_rij) 
-proteced_X_species <- proteced_species [, proteced_species ["Protected",] > 0]
-proteced_X_species_tbl <- Matrix::rowSums(proteced_X_species, na.rm = TRUE) %>%
-  as_tibble(rownames = "File") %>%
-  rename(Protected_Ha = value )
-
-## build data frame
-species_tbl <- Matrix::rowSums(species_rij, na.rm = TRUE) %>%
-  as_tibble(rownames = "File") %>%
-  rename(Total_Ha = value) %>%
-  left_join(proteced_X_species_tbl) %>%
-  mutate(File = paste0(File, ".tif")) %>%
-  mutate(Source = "ECCC_SAR", .before = File) %>%
-  mutate(Pct_Protected = round(((Protected_Ha / Total_Ha) * 100), 2)) %>%
-  as.data.frame()
-
-## add scientific name, common name and threat
-species_tbl <- species_tbl %>%
-  mutate(
-    Sci_Name = imap(
-      File, ~ (sar_cosewicid_to_name(
-        LUT = ECCC_SAR_LU,
-        cosewicid = tail(unlist(strsplit(strsplit(.x, ".tif")[[1]][1], "_")), 1),
-        name_type = "sci")
-      )), .after = File) %>%
-  mutate(
-    Common_Name = imap(
-      File, ~ (sar_cosewicid_to_name(
-        LUT = ECCC_SAR_LU,
-        cosewicid = tail(unlist(strsplit(strsplit(.x, ".tif")[[1]][1], "_")), 1),
-        name_type = "common")
-      )), .after = Sci_Name) %>%
-  mutate(
-    Threat =  imap(
-      File, ~ (unlist(strsplit(strsplit(.x, ".tif")[[1]][1], "_"))[5])),
-    .after = Common_Name
-  ) %>%
-  mutate(
-    Theme = case_when(
-      Threat == "END" ~ "Endangered Species (ECCC SAR Range Map Extents)",
-      Threat == "EXT" ~ "Extirpated Species (ECCC SAR Range Map Extents)",
-      Threat == "NOS" ~ "No Status Species (ECCC SAR Range Map Extents)",
-      Threat == "SPC" ~ "Special Concern Species (ECCC SAR Range Map Extents)",
-      Threat == "THR" ~ "Threatened Species (ECCC SAR Range Map Extents)",
-      Threat == "NAR" ~ "Not at Risk Species (ECCC SAR Range Map Extents"
-    ), .after = File
+## read-in prepped feature class
+species <- read_sf("Data/Output/Conserved/Conserved.gdb", "ECCC_SAR_PROTECTED") %>% 
+  st_drop_geometry() %>%
+  mutate(Source = "ECCC_SAR") %>%
+  mutate(Threat = case_when(
+    SAR_STAT_E == "Extirpated" ~ "EXT",
+    SAR_STAT_E == "Endangered" ~ "END",
+    SAR_STAT_E == "Threatened" ~ "THR",
+    SAR_STAT_E == "Special Concern" ~ "SPC",
+    SAR_STAT_E == "No Status" ~ "NOS",
+    SAR_STAT_E == "Not at Risk" ~ "NAR"
+  )) %>%
+  mutate(Theme = case_when(
+    Threat == "END" ~ "Range: Endangered Species (ECCC)",
+    Threat == "EXT" ~ "Range: Extirpated Species (ECCC)",
+    Threat == "NOS" ~ "Range: No Status Species (ECCC)",
+    Threat == "SPC" ~ "Range: Special Concern Species (ECCC)",
+    Threat == "THR" ~ "Range: Threatened Species (ECCC)",
+    Threat == "NAR" ~ "Range: Not at Risk Species (ECCC)"
+  )) %>%  
+  mutate(File = paste0("T_NAT_ECCC_SAR_", Threat, "_COSEWIC_", COSEWICID, ".tif")) %>%
+  rename(Sci_Name = SCI_NAME) %>%
+  rename(Common_Name = COM_NAME_E) %>%
+  rename(COSEWIC_ID = COSEWICID) %>%
+  mutate(Total_Km2 = RANGE_HA / 100) %>%
+  mutate(Protected_Km2 = PROTECTION_HA / 100) %>%
+  mutate(Pct_Protected = round(((Protected_Km2 / Total_Km2) * 100), 2)) %>%
+  select(c("Source", "File", "COSEWIC_ID", "Theme", "Sci_Name", "Common_Name", "Threat", "Total_Km2", "Protected_Km2", "Pct_Protected")) %>%
+  as.data.frame() %>%
+  write.xlsx(
+    file = 'Data/Output/metadata/WTW_NAT_SPECIES_METADATA.xlsx',
+    sheetName = 'ECCC_SAR', 
+    row.names = FALSE,
+    append = TRUE
   )
-  
-## write to excel
-write.xlsx(
-  species_tbl, 
-  file = 'Data/Output/metadata/WTW_NAT_SPECIES_METADATA.xlsx',
-  sheetName = 'ECCC_SAR', 
-  row.names = FALSE, 
-  append = TRUE
-)
 
 # IUCN AMPH --------------------------------------------------------------------
 
@@ -171,16 +131,16 @@ proteced_species <- rbind(species_rij, protected_rij)
 proteced_X_species <- proteced_species [, proteced_species ["Protected",] > 0]
 proteced_X_species_tbl <- Matrix::rowSums(proteced_X_species, na.rm = TRUE) %>%
   as_tibble(rownames = "File") %>%
-  rename(Protected_Ha = value )
+  rename(Protected_Km2 = value )
 
 ## build data frame
 species_tbl <- Matrix::rowSums(species_rij, na.rm = TRUE) %>%
   as_tibble(rownames = "File") %>%
-  rename(Total_Ha = value) %>%
+  rename(Total_Km2 = value) %>%
   left_join(proteced_X_species_tbl) %>%
   mutate(File = paste0(File, ".tif")) %>%
   mutate(Source = "IUCN_AMPH", .before = File) %>%
-  mutate(Pct_Protected = round(((Protected_Ha / Total_Ha) * 100), 2)) %>%
+  mutate(Pct_Protected = round(((Protected_Km2 / Total_Km2) * 100), 2)) %>%
   as.data.frame()
 
 ## add scientific name, common name, threat, theme and file
@@ -223,16 +183,16 @@ proteced_species <- rbind(species_rij, protected_rij)
 proteced_X_species <- proteced_species [, proteced_species ["Protected",] > 0]
 proteced_X_species_tbl <- Matrix::rowSums(proteced_X_species, na.rm = TRUE) %>%
   as_tibble(rownames = "File") %>%
-  rename(Protected_Ha = value )
+  rename(Protected_Km2 = value )
 
 ## build data frame
 species_tbl <- Matrix::rowSums(species_rij, na.rm = TRUE) %>%
   as_tibble(rownames = "File") %>%
-  rename(Total_Ha = value) %>%
+  rename(Total_Km2 = value) %>%
   left_join(proteced_X_species_tbl) %>%
   mutate(File = paste0(File, ".tif")) %>%
   mutate(Source = "IUCN_BIRD", .before = File) %>%
-  mutate(Pct_Protected = round(((Protected_Ha / Total_Ha) * 100), 2)) %>%
+  mutate(Pct_Protected = round(((Protected_Km2 / Total_Km2) * 100), 2)) %>%
   as.data.frame()
 
 ## add scientific name, common name, season, threat, theme and file
@@ -279,16 +239,16 @@ proteced_species <- rbind(species_rij, protected_rij)
 proteced_X_species <- proteced_species [, proteced_species ["Protected",] > 0]
 proteced_X_species_tbl <- Matrix::rowSums(proteced_X_species, na.rm = TRUE) %>%
   as_tibble(rownames = "File") %>%
-  rename(Protected_Ha = value )
+  rename(Protected_Km2 = value )
 
 ## build data frame
 species_tbl <- Matrix::rowSums(species_rij, na.rm = TRUE) %>%
   as_tibble(rownames = "File") %>%
-  rename(Total_Ha = value) %>%
+  rename(Total_Km2 = value) %>%
   left_join(proteced_X_species_tbl) %>%
   mutate(File = paste0(File, ".tif")) %>%
   mutate(Source = "IUCN_MAMM", .before = File) %>%
-  mutate(Pct_Protected = round(((Protected_Ha / Total_Ha) * 100), 2)) %>%
+  mutate(Pct_Protected = round(((Protected_Km2 / Total_Km2) * 100), 2)) %>%
   as.data.frame()
 
 ## add scientific name, common name, threat, theme and file
@@ -331,16 +291,16 @@ proteced_species <- rbind(species_rij, protected_rij)
 proteced_X_species <- proteced_species [, proteced_species ["Protected",] > 0]
 proteced_X_species_tbl <- Matrix::rowSums(proteced_X_species, na.rm = TRUE) %>%
   as_tibble(rownames = "File") %>%
-  rename(Protected_Ha = value )
+  rename(Protected_Km2 = value )
 
 ## build data frame
 species_tbl <- Matrix::rowSums(species_rij, na.rm = TRUE) %>%
   as_tibble(rownames = "File") %>%
-  rename(Total_Ha = value) %>%
+  rename(Total_Km2 = value) %>%
   left_join(proteced_X_species_tbl) %>%
   mutate(File = paste0(File, ".tif")) %>%
   mutate(Source = "IUCN_REPT", .before = File) %>%
-  mutate(Pct_Protected = round(((Protected_Ha / Total_Ha) * 100), 2)) %>%
+  mutate(Pct_Protected = round(((Protected_Km2 / Total_Km2) * 100), 2)) %>%
   as.data.frame()
 
 ## add scientific name, common name, threat, theme and file
@@ -383,16 +343,16 @@ proteced_species <- rbind(species_rij, protected_rij)
 proteced_X_species <- proteced_species [, proteced_species ["Protected",] > 0]
 proteced_X_species_tbl <- Matrix::rowSums(proteced_X_species, na.rm = TRUE) %>%
   as_tibble(rownames = "File") %>%
-  rename(Protected_Ha = value )
+  rename(Protected_Km2 = value )
 
 ## build data frame
 species_tbl <- Matrix::rowSums(species_rij, na.rm = TRUE) %>%
   as_tibble(rownames = "File") %>%
-  rename(Total_Ha = value) %>%
+  rename(Total_Km2 = value) %>%
   left_join(proteced_X_species_tbl) %>%
   mutate(File = paste0(File, ".tif")) %>%
   mutate(Source = "NSC_END", .before = File) %>%
-  mutate(Pct_Protected = round(((Protected_Ha / Total_Ha) * 100), 2)) %>%
+  mutate(Pct_Protected = round(((Protected_Km2 / Total_Km2) * 100), 2)) %>%
   as.data.frame()
 
 ## add scientific name, common name, threat, theme and file
@@ -433,16 +393,16 @@ proteced_species <- rbind(species_rij, protected_rij)
 proteced_X_species <- proteced_species [, proteced_species ["Protected",] > 0]
 proteced_X_species_tbl <- Matrix::rowSums(proteced_X_species, na.rm = TRUE) %>%
   as_tibble(rownames = "File") %>%
-  rename(Protected_Ha = value )
+  rename(Protected_Km2 = value )
 
 ## build data frame
 species_tbl <- Matrix::rowSums(species_rij, na.rm = TRUE) %>%
   as_tibble(rownames = "File") %>%
-  rename(Total_Ha = value) %>%
+  rename(Total_Km2 = value) %>%
   left_join(proteced_X_species_tbl) %>%
   mutate(File = paste0(File, ".tif")) %>%
   mutate(Source = "NSC_SAR", .before = File) %>%
-  mutate(Pct_Protected = round(((Protected_Ha / Total_Ha) * 100), 2)) %>%
+  mutate(Pct_Protected = round(((Protected_Km2 / Total_Km2) * 100), 2)) %>%
   as.data.frame()
 
 ## add scientific name, common name, threat, theme and file
@@ -483,16 +443,16 @@ proteced_species <- rbind(species_rij, protected_rij)
 proteced_X_species <- proteced_species [, proteced_species ["Protected",] > 0]
 proteced_X_species_tbl <- Matrix::rowSums(proteced_X_species, na.rm = TRUE) %>%
   as_tibble(rownames = "File") %>%
-  rename(Protected_Ha = value )
+  rename(Protected_Km2 = value )
 
 ## build data frame
 species_tbl <- Matrix::rowSums(species_rij, na.rm = TRUE) %>%
   as_tibble(rownames = "File") %>%
-  rename(Total_Ha = value) %>%
+  rename(Total_Km2 = value) %>%
   left_join(proteced_X_species_tbl) %>%
   mutate(File = paste0(File, ".tif")) %>%
   mutate(Source = "NSC_SPP", .before = File) %>%
-  mutate(Pct_Protected = round(((Protected_Ha / Total_Ha) * 100), 2)) %>%
+  mutate(Pct_Protected = round(((Protected_Km2 / Total_Km2) * 100), 2)) %>%
   as.data.frame()
 
 ## add scientific name, common name, threat, theme and file
