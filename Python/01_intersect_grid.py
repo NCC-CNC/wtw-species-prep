@@ -54,11 +54,12 @@ for layer in layers:
     # Set environments
     arcpy.env.snapRaster = snap
     arcpy.env.extent = snap
+  
     # Rasterize
     arcpy.conversion.PolygonToRaster(
       in_features = layer, 
       value_field = "BURN", 
-      out_rasterdataset = "{}/T_ECCC_{}.tif".format(os.path.dirname(fgdb), name),
+      out_rasterdataset = "{}/T_NAT_ECCC_{}.tif".format(os.path.dirname(fgdb), name),
       cell_assignment = "MAXIMUM_COMBINED_AREA",
       priority_field = "Range_ha",
       cellsize = 1000,
