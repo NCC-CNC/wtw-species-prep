@@ -1,7 +1,7 @@
 #
 # Authors: Dan Wismer
 #
-# Date: July 5th, 2023
+# Date: Aug 24th, 2023
 #
 # Description: Builds species metadata. This includes total range/habitat
 #              area and area of range/habitat that is currently protected.
@@ -26,13 +26,13 @@ library(purrr)
 library(stringr)
 library(sf)
 source("R/fct_sci_to_common.R")
+source("R/fct_calculate_targets.R")
 
 # Read-in NCC planning unts and existing conservation
 ncc_1km <- rast("Data/Input/NCC/NCC_1KM_PU.tif")
 protected <- rast("Data/Output/Conserved/Existing_Conservation_ha.tif") 
 terra::NAflag(protected) <- 128 # set NA pixel
 protected <- protected  / 100 # convert to km2
-
 
 # Read-in look up tables ----
 ECCC_CH_LU <- read_excel("Data/Output/metadata/ECCC_CH_Metadata.xlsx")
@@ -75,7 +75,10 @@ species <- read_sf("Data/Output/Conserved/Conserved.gdb", "ECCC_CH_PROTECTED") %
   mutate(Total_Km2 = RANGE_HA / 100) %>%
   mutate(Protected_Km2 = PROTECTION_HA / 100) %>%
   mutate(Pct_Protected = round(((Protected_Km2 / Total_Km2) * 100), 2)) %>%
-  select(c("Source", "File", "COSEWIC_ID", "Theme", "Sci_Name", "Common_Name", "Threat", "Total_Km2", "Protected_Km2", "Pct_Protected")) %>%
+  mutate(Goal = calculate_targets(Total_Km2)) %>%
+  select(c("Source", "File", "COSEWIC_ID", "Theme", 
+           "Sci_Name", "Common_Name", "Threat", "Total_Km2", 
+           "Protected_Km2", "Pct_Protected", "Goal")) %>%
   as.data.frame() %>%
   write.xlsx(
     file = 'Data/Output/metadata/WTW_NAT_SPECIES_METADATA.xlsx',
@@ -113,7 +116,10 @@ species <- read_sf("Data/Output/Conserved/Conserved.gdb", "ECCC_SAR_PROTECTED") 
   mutate(Total_Km2 = RANGE_HA / 100) %>%
   mutate(Protected_Km2 = PROTECTION_HA / 100) %>%
   mutate(Pct_Protected = round(((Protected_Km2 / Total_Km2) * 100), 2)) %>%
-  select(c("Source", "File", "COSEWIC_ID", "Theme", "Sci_Name", "Common_Name", "Threat", "Total_Km2", "Protected_Km2", "Pct_Protected")) %>%
+  mutate(Goal = calculate_targets(Total_Km2)) %>%
+  select(c("Source", "File", "COSEWIC_ID", "Theme", 
+           "Sci_Name", "Common_Name", "Threat", "Total_Km2", 
+           "Protected_Km2", "Pct_Protected", "Goal")) %>%
   as.data.frame() %>%
   write.xlsx(
     file = 'Data/Output/metadata/WTW_NAT_SPECIES_METADATA.xlsx',
@@ -141,9 +147,10 @@ species_tbl <- Matrix::rowSums(species_rij, na.rm = TRUE) %>%
   mutate(File = paste0(File, ".tif")) %>%
   mutate(Source = "IUCN_AMPH", .before = File) %>%
   mutate(Pct_Protected = round(((Protected_Km2 / Total_Km2) * 100), 2)) %>%
+  mutate(Goal = calculate_targets(Total_Km2)) %>%  
   as.data.frame()
 
-## add scientific name, common name, threat, theme and file
+## add scientific name, common name, threat, theme, file and goal
 species_tbl <- species_tbl %>%
   mutate(
     Sci_Name = imap(
@@ -163,7 +170,7 @@ species_tbl <- species_tbl %>%
   ) %>%
   mutate(
     File = paste0("T_NAT_IUCN_AMPH_", File)
-  )
+  ) 
 
 ## write to excel
 write.xlsx(
@@ -193,6 +200,7 @@ species_tbl <- Matrix::rowSums(species_rij, na.rm = TRUE) %>%
   mutate(File = paste0(File, ".tif")) %>%
   mutate(Source = "IUCN_BIRD", .before = File) %>%
   mutate(Pct_Protected = round(((Protected_Km2 / Total_Km2) * 100), 2)) %>%
+  mutate(Goal = calculate_targets(Total_Km2)) %>%  
   as.data.frame()
 
 ## add scientific name, common name, season, threat, theme and file
@@ -249,6 +257,7 @@ species_tbl <- Matrix::rowSums(species_rij, na.rm = TRUE) %>%
   mutate(File = paste0(File, ".tif")) %>%
   mutate(Source = "IUCN_MAMM", .before = File) %>%
   mutate(Pct_Protected = round(((Protected_Km2 / Total_Km2) * 100), 2)) %>%
+  mutate(Goal = calculate_targets(Total_Km2)) %>%
   as.data.frame()
 
 ## add scientific name, common name, threat, theme and file
@@ -301,6 +310,7 @@ species_tbl <- Matrix::rowSums(species_rij, na.rm = TRUE) %>%
   mutate(File = paste0(File, ".tif")) %>%
   mutate(Source = "IUCN_REPT", .before = File) %>%
   mutate(Pct_Protected = round(((Protected_Km2 / Total_Km2) * 100), 2)) %>%
+  mutate(Goal = calculate_targets(Total_Km2)) %>%
   as.data.frame()
 
 ## add scientific name, common name, threat, theme and file
@@ -353,6 +363,7 @@ species_tbl <- Matrix::rowSums(species_rij, na.rm = TRUE) %>%
   mutate(File = paste0(File, ".tif")) %>%
   mutate(Source = "NSC_END", .before = File) %>%
   mutate(Pct_Protected = round(((Protected_Km2 / Total_Km2) * 100), 2)) %>%
+  mutate(Goal = calculate_targets(Total_Km2)) %>%
   as.data.frame()
 
 ## add scientific name, common name, threat, theme and file
@@ -403,6 +414,7 @@ species_tbl <- Matrix::rowSums(species_rij, na.rm = TRUE) %>%
   mutate(File = paste0(File, ".tif")) %>%
   mutate(Source = "NSC_SAR", .before = File) %>%
   mutate(Pct_Protected = round(((Protected_Km2 / Total_Km2) * 100), 2)) %>%
+  mutate(Goal = calculate_targets(Total_Km2)) %>%
   as.data.frame()
 
 ## add scientific name, common name, threat, theme and file
@@ -453,6 +465,7 @@ species_tbl <- Matrix::rowSums(species_rij, na.rm = TRUE) %>%
   mutate(File = paste0(File, ".tif")) %>%
   mutate(Source = "NSC_SPP", .before = File) %>%
   mutate(Pct_Protected = round(((Protected_Km2 / Total_Km2) * 100), 2)) %>%
+  mutate(Goal = calculate_targets(Total_Km2)) %>%
   as.data.frame()
 
 ## add scientific name, common name, threat, theme and file
