@@ -17,7 +17,7 @@
 #
 # RUN RECORDER:   
 ##  ECCC_CH: ~3 mins, 261 species, 6 cores, 50 chunks, last run: July 6th, 2023 
-##  ECCC_SAR: ~6 mins, 475 species, 6 cores, 50 chunks, last run: July 6th, 2023 
+##  ECCC_SAR: ~6 mins, 489 species, 6 cores, 50 chunks, last run: Aug 28th, 2023 
 ##  IUCN_AMPH: ~2 mins, 6 cores, 50 chunks
 ##  IUCN_BIRD: ~14 mins, 6 cores, 50 chunks
 ##  IUCN_MAMM: ~3 mins, 6 cores, 50 chunks
@@ -82,7 +82,7 @@ batch_rij <- function(PU, tiff_lst, name) {
 }
 
 # Loop over data sources ----
-sources <- sources[9:9] # <--- SUBSET NEED BE TO NOT ITERATE OVER ALL SOURCES
+sources <- sources[2:2] # <--- SUBSET NEED BE TO NOT ITERATE OVER ALL SOURCES
 for (i in seq_along(sources)) {
   start_time <- Sys.time()
   
