@@ -150,3 +150,21 @@ writeRaster(contr_mean_r, "Data/Output/Goals/NSC_SPP_PCT_CONTR_TO_GOAL_MEAN.tif"
 richness <- Matrix::colSums(RIJ)
 richness_r <- matrix_to_raster(NCC_1KM_PU, richness)
 writeRaster(richness_r, "Data/Output/Richness/NSC_SPP_SUM_N.tif", overwrite = TRUE)
+
+# Biodiversity
+## goal
+IUCN_AMPH <- rast("Data/Output/Goals/IUCN_AMPH_PCT_CONTR_TO_GOAL_MEAN.tif")
+IUCN_BIRD <- rast("Data/Output/Goals/IUCN_BIRD_PCT_CONTR_TO_GOAL_MEAN.tif")
+IUCN_MAMM <- rast("Data/Output/Goals/IUCN_MAMM_PCT_CONTR_TO_GOAL_MEAN.tif")
+IUCN_REPT <- rast("Data/Output/Goals/IUCN_REPT_PCT_CONTR_TO_GOAL_MEAN.tif")
+NSC_SPP <- rast("Data/Output/Goals/NSC_SPP_PCT_CONTR_TO_GOAL_MEAN.tif")
+biod <- mosaic(IUCN_AMPH, IUCN_BIRD, IUCN_MAMM, IUCN_REPT, NSC_SPP, fun = "sum")
+writeRaster(biod, "Data/Output/Goal/BOID_MEAN.tif", overwrite = TRUE)
+## richness
+IUCN_AMPH <- rast("Data/Output/Richness/IUCN_AMPH_SUM_N.tif")
+IUCN_BIRD <- rast("Data/Output/Richness/IUCN_BIRD_SUM_N.tif")
+IUCN_MAMM <- rast("Data/Output/Richness/IUCN_MAMM_SUM_N.tif")
+IUCN_REPT <- rast("Data/Output/Richness/IUCN_REPT_SUM_N.tif")
+NSC_SPP <- rast("Data/Output/Richness/NSC_SPP_SUM_N.tif")
+biod <- mosaic(IUCN_AMPH, IUCN_BIRD, IUCN_MAMM, IUCN_REPT, NSC_SPP, fun = "sum")
+writeRaster(biod, "Data/Output/Richness/BOID_N.tif", overwrite = TRUE)
