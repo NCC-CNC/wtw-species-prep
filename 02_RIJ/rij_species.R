@@ -18,13 +18,17 @@
 # RUN RECORDER:   
 ##  ECCC_CH: ~3 mins, 261 species, 6 cores, 50 chunks, last run: July 6th, 2023 
 ##  ECCC_SAR: ~6 mins, 489 species, 6 cores, 50 chunks, last run: Aug 28th, 2023 
+##  ECCC_SAR_AOH: ~6 mins, 456 species, 6 cores, 50 chunks, last run: May 6th, 2025
 ##  IUCN_AMPH: ~2 mins, 6 cores, 50 chunks
-##  IUCN_BIRD: ~14 mins, 6 cores, 50 chunks
+##  IUCN_BIRD_S1: ~3 mins, 192 species, 6 cores, 50 chunks, last run: May 2nd, 2025
+##  IUCN_BIRD_S2: ~6 mins, 351 species, 6 cores, 50 chunks, last run: May 2nd, 2025
+##  IUCN_BIRD_S3: ~2 mins, 131 species, 6 cores, 50 chunks, last run: May 2nd, 2025
 ##  IUCN_MAMM: ~3 mins, 6 cores, 50 chunks
 ##  IUCN_REPT: ~1 mins, 6 cores, 50 chunks
 ##  NSC_END: ~3 mins, 6 cores, 50 chunks
 ##  NSC_SAR: ~5 mins, 6 cores, 50 chunks
 ##  NSC_SPP: NOT COMPLETTING!!! last run: July 6th, 2023
+##  SDM: ~ 19 mins, 1448 species, 6 cores, 100 chunks, last run: May 6th, 2025
 #===============================================================================
 
 library(terra)
@@ -45,25 +49,33 @@ PU <- wrap(PU) # <--- needed for parallel
 # Species folder that has final .tiffs 
 ECCC_CH_PATH <- "Data/Output/ECCC_CH"
 ECCC_SAR_PATH <- "Data/Output/ECCC_SAR"
+ECCC_SAR_AOH_PATH <- "C:/Data/NAT/SPECIES_1km/AOH_SAR_Layers_1KM"
 IUCN_AMPH_PATH <- "C:/Data/NAT/SPECIES_1km/IUCN_AMPH"
-IUCN_BIRD_PATH <- "C:/Data/NAT/SPECIES_1km/IUCN_BIRD"
+IUCN_BIRD_S1_PATH <- "C:/Data/NAT/SPECIES_1km/IUCN_BIRD/S1_Resident"
+IUCN_BIRD_S2_PATH <- "C:/Data/NAT/SPECIES_1km/IUCN_BIRD/S2_Breeding"
+IUCN_BIRD_S3_PATH <- "C:/Data/NAT/SPECIES_1km/IUCN_BIRD/S3_Non_Breeding"
 IUCN_MAMM_PATH <- "C:/Data/NAT/SPECIES_1km/IUCN_MAMM"
 IUCN_REPT_PATH <- "C:/Data/NAT/SPECIES_1km/IUCN_REPT"
 NSC_END_PATH <- "C:/Data/NAT/SPECIES_1km/NSC_END"
 NSC_SAR_PATH <- "C:/Data/NAT/SPECIES_1km/NSC_SAR"
 NSC_SPP_PATH <- "C:/Data/NAT/SPECIES_1km/NSC_SPP"
+SDM <- "C:/Data/NAT/SPECIES_1km/SDM_Binary_1KM"
 
 # Named vector of sources to loop over
 sources <- c(
   "ECCC_CH" = ECCC_CH_PATH, 
   "ECCC_SAR" = ECCC_SAR_PATH,
+  "ECCC_SAR_AOH" = ECCC_SAR_AOH_PATH,
   "IUCN_AMPH" = IUCN_AMPH_PATH,
-  "IUCN_BIRD" = IUCN_BIRD_PATH,
+  "IUCN_BIRD_S1" = IUCN_BIRD_S1_PATH,
+  "IUCN_BIRD_S2" = IUCN_BIRD_S2_PATH,
+  "IUCN_BIRD_S3" = IUCN_BIRD_S3_PATH,
   "IUCN_MAMM" = IUCN_MAMM_PATH,
   "IUCN_REPT" = IUCN_REPT_PATH,
   "NSC_END" = NSC_END_PATH,
   "NSC_SAR" = NSC_SAR_PATH,
-  "NSC_SPP" = NSC_SPP_PATH
+  "NSC_SPP" = NSC_SPP_PATH,
+  "SDM" = SDM
 )
 
 # RIJ function (needed in foreach %dopar%) ----
@@ -82,7 +94,7 @@ batch_rij <- function(PU, tiff_lst, name) {
 }
 
 # Loop over data sources ----
-sources <- sources[2:2] # <--- SUBSET NEED BE TO NOT ITERATE OVER ALL SOURCES
+sources <- sources[13:13] # <--- SUBSET NEED BE TO NOT ITERATE OVER ALL SOURCES
 for (i in seq_along(sources)) {
   start_time <- Sys.time()
   
@@ -99,7 +111,7 @@ for (i in seq_along(sources)) {
   print(paste0("... number of species: ", length(species)))
   
   # Split list up into chunks ----
-  chunks <- 50 # <--- CHANGE NUMBER OF "CHUNKS" NEED BE
+  chunks <- 100 # <--- CHANGE NUMBER OF "CHUNKS" NEED BE
   species_split <- split(
     species, ceiling(seq_along(species) / (length(species) / chunks))
   )

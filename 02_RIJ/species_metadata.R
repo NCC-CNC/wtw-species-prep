@@ -60,11 +60,7 @@ species <- read_sf("Data/Output/Conserved/Conserved.gdb", "ECCC_CH_PROTECTED") %
     SARA_Status == 2 ~ "END",
     SARA_Status == 3 ~ "THR",
   )) %>%
-  mutate(Theme = case_when(
-      Threat == "END" ~ "Critical Habitat: Endangered Species (ECCC)",
-      Threat == "EXT" ~ "Critical Habitat: Extirpated Species (ECCC)",
-      Threat == "THR" ~ "Critical Habitat: Threatened Species (ECCC)",
-  )) %>%  
+  mutate(Theme = "SAR Critical Habitat (ECCC)") %>%  
   mutate(File = paste0("T_NAT_ECCC_CH_", Threat, "_COSEWIC_", COSEWIC_ID, ".tif")) %>%
   mutate(Sci_Name = imap(
     COSEWIC_ID, ~ (filter(ECCC_CH_LU, COSEWIC_ID == .x)$SciName[1]))
@@ -101,14 +97,7 @@ species <- read_sf("Data/Output/Conserved/Conserved.gdb", "ECCC_SAR_PROTECTED") 
     SAR_STAT_E == "No Status" ~ "NOS",
     SAR_STAT_E == "Not at Risk" ~ "NAR"
   )) %>%
-  mutate(Theme = case_when(
-    Threat == "END" ~ "Range: Endangered Species (ECCC)",
-    Threat == "EXT" ~ "Range: Extirpated Species (ECCC)",
-    Threat == "NOS" ~ "Range: No Status Species (ECCC)",
-    Threat == "SPC" ~ "Range: Special Concern Species (ECCC)",
-    Threat == "THR" ~ "Range: Threatened Species (ECCC)",
-    Threat == "NAR" ~ "Range: Not at Risk Species (ECCC)"
-  )) %>%  
+  mutate(Theme = "SAR Ranges (ECCC)") %>%  
   mutate(File = paste0("T_NAT_ECCC_SAR_", Threat, "_COSEWIC_", COSEWICID, ".tif")) %>%
   rename(Sci_Name = SCI_NAME) %>%
   rename(Common_Name = COM_NAME_E) %>%
@@ -166,7 +155,7 @@ species_tbl <- species_tbl %>%
     .after = Common_Name
   ) %>%
   mutate(
-    Theme = "Amphibians (IUCN Area of Habitat)", .after = File
+    Theme = "Amphibians (IUCN AOH)", .after = File
   ) %>%
   mutate(
     File = paste0("T_NAT_IUCN_AMPH_", File)
@@ -223,12 +212,26 @@ species_tbl <- species_tbl %>%
     .after = Common_Name
   ) %>%
   mutate(
-    Theme = "Birds (IUCN Area of Habitat)", .after = File
+    Theme = "Birds (IUCN AOH)", .after = File
   ) %>%
   mutate(
     File = paste0("T_NAT_IUCN_BIRD_", File)
   )
 
+species_tbl$Season <- unlist(species_tbl$Season)
+species_tbl$Common_Name <- unlist(species_tbl$Common_Name)
+
+species_tbl <- species_tbl %>%
+  mutate(
+  Common_Name = 
+    case_when(
+      Season == "1" ~  paste0(Common_Name, " (resident)"),
+      Season == "2" ~  paste0(Common_Name, " (breeding)"),
+      Season == "3" ~  paste0(Common_Name, " (non-breeding)"),
+      TRUE ~ Common_Name
+    )
+  )
+  
 ## write to excel
 write.xlsx(
   species_tbl, 
@@ -276,7 +279,7 @@ species_tbl <- species_tbl %>%
     .after = Common_Name
   ) %>%
   mutate(
-    Theme = "Mammals (IUCN Area of Habitat)", .after = File
+    Theme = "Mammals (IUCN AOH)", .after = File
   ) %>%
   mutate(
     File = paste0("T_NAT_IUCN_MAMM_", File)
@@ -329,7 +332,7 @@ species_tbl <- species_tbl %>%
     .after = Common_Name
   ) %>%
   mutate(
-    Theme = "Reptiles (IUCN Area of Habitat)", .after = File
+    Theme = "Reptiles (IUCN AOH)", .after = File
   ) %>%
   mutate(
     File = paste0("T_NAT_IUCN_REPT_", File)
@@ -380,7 +383,7 @@ species_tbl <- species_tbl %>%
     Threat = "", .after = Common_Name
     ) %>%
   mutate(
-    Theme = "Endemic Species (NSC Occurance)", .after = File
+    Theme = "Endemic Species (NSC)", .after = File
   ) %>%
   mutate(
     File = paste0("T_NAT_NSC_END_", File)
@@ -431,7 +434,7 @@ species_tbl <- species_tbl %>%
     Threat = "", .after = Common_Name
     ) %>%
   mutate(
-    Theme = "Species at Risk (NSC Occurance)", .after = File
+    Theme = "SAR (NSC)", .after = File
   ) %>%
   mutate(
     File = paste0("T_NAT_NSC_SAR_", File)
@@ -482,7 +485,7 @@ species_tbl <- species_tbl %>%
     Threat = "", .after = Common_Name
     ) %>%
   mutate(
-    Theme = "Common Species (NSC Occurance)", .after = File
+    Theme = "Common Species (NSC)", .after = File
   ) %>%
   mutate(
     File = paste0("T_NAT_NSC_SPP_", File)
