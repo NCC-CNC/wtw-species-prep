@@ -18,7 +18,7 @@
 # RUN RECORDER:   
 ##  ECCC_CH: ~3 mins, 261 species, 6 cores, 50 chunks, last run: July 6th, 2023 
 ##  ECCC_SAR: ~6 mins, 489 species, 6 cores, 50 chunks, last run: Aug 28th, 2023 
-##  ECCC_SAR_AOH: ~6 mins, 456 species, 6 cores, 50 chunks, last run: May 6th, 2025
+##  ECCC_SAR_AOH: ~6 mins, 456 species, 6 cores, 50 chunks, last run: May 7th, 2025
 ##  IUCN_AMPH: ~2 mins, 6 cores, 50 chunks
 ##  IUCN_BIRD_S1: ~3 mins, 192 species, 6 cores, 50 chunks, last run: May 2nd, 2025
 ##  IUCN_BIRD_S2: ~6 mins, 351 species, 6 cores, 50 chunks, last run: May 2nd, 2025
@@ -94,7 +94,7 @@ batch_rij <- function(PU, tiff_lst, name) {
 }
 
 # Loop over data sources ----
-sources <- sources[13:13] # <--- SUBSET NEED BE TO NOT ITERATE OVER ALL SOURCES
+sources <- sources[3:3] # <--- SUBSET NEED BE TO NOT ITERATE OVER ALL SOURCES
 for (i in seq_along(sources)) {
   start_time <- Sys.time()
   
@@ -111,7 +111,7 @@ for (i in seq_along(sources)) {
   print(paste0("... number of species: ", length(species)))
   
   # Split list up into chunks ----
-  chunks <- 100 # <--- CHANGE NUMBER OF "CHUNKS" NEED BE
+  chunks <- 50 # <--- CHANGE NUMBER OF "CHUNKS" NEED BE
   species_split <- split(
     species, ceiling(seq_along(species) / (length(species) / chunks))
   )
